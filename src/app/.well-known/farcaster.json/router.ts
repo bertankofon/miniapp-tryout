@@ -18,28 +18,26 @@ function withValidProperties(properties: Record<string, undefined | string | str
         "miniapp": {
           "version": "1",
           "name": "Example Mini App",
-          "homeUrl": "https://basebluesquare.com",
-          "iconUrl": "https://basebluesquare.com/i.png",
-          "splashImageUrl": "https://basebluesquare.com/l.png",
+          "homeUrl": "https://ex.co",
+          "iconUrl": "https://ex.co/i.png",
+          "splashImageUrl": "https://ex.co/l.png",
           "splashBackgroundColor": "#000000",
-          "webhookUrl": "https://basebluesquare.com/api/webhook",
+          "webhookUrl": "https://ex.co/api/webhook",
           "subtitle": "Fast, fun, social",
           "description": "A fast, fun way to challenge friends in real time.",
           "screenshotUrls": [
-            "https://basebluesquare.com/s1.png",
-            "https://basebluesquare.com/s2.png",
-            "https://basebluesquare.com/s3.png"
+            "https://ex.co/s1.png",
+            "https://ex.co/s2.png",
+            "https://ex.co/s3.png"
           ],
           "primaryCategory": "social",
           "tags": ["example", "miniapp", "baseapp"],
-          "heroImageUrl": "https://basebluesquare.com/og.png",
+          "heroImageUrl": "https://ex.co/og.png",
           "tagline": "Play instantly",
-          "ogTitle": "Base Blue Square",
+          "ogTitle": "Example Mini App",
           "ogDescription": "Challenge friends in real time.",
-          "ogImageUrl": "https://basebluesquare.com/og.png",
+          "ogImageUrl": "https://ex.co/og.png",
           "noindex": true
         }
-      });
+      }); // see the next step for the manifest_json_object
     }
-
-    

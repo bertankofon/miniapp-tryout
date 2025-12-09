@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { sdk } from '@farcaster/miniapp-sdk';
+
 
 export default function Home() {
   const [timeLeft, setTimeLeft] = useState(60);
@@ -17,6 +19,7 @@ export default function Home() {
   const SIZE_INCREMENT = 4; // How much to increase per click
 
   useEffect(() => {
+    sdk.actions.ready();
     if (isGameActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
