@@ -1,65 +1,168 @@
-import Image from "next/image";
+"use client";
+
+import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 
 export default function Home() {
+  const [timeLeft, setTimeLeft] = useState(60);
+  const [isGameActive, setIsGameActive] = useState(false);
+  const [clickCount, setClickCount] = useState(0);
+  const [finalClickCount, setFinalClickCount] = useState(0);
+  const [hasStarted, setHasStarted] = useState(false);
+  const [boxSize, setBoxSize] = useState(192); // Starting size: 48 * 4 = 192px (h-48 w-48)
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const boxRef = useRef<HTMLDivElement>(null);
+
+  const MAX_BOX_SIZE = 320; // Maximum size for the blue box
+  const SIZE_INCREMENT = 4; // How much to increase per click
+
+  useEffect(() => {
+    if (isGameActive && timeLeft > 0) {
+      timerRef.current = setInterval(() => {
+        setTimeLeft((prev) => {
+          if (prev <= 1) {
+            setIsGameActive(false);
+            // Save final click count when timer finishes
+            setFinalClickCount(clickCount);
+            // Save score to localStorage
+            if (clickCount > 0) {
+              const scores = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+              const username = '@username';
+              scores.push({
+                username,
+                clicks: clickCount,
+                timestamp: Date.now()
+              });
+              // Sort by clicks descending and keep top 100
+              scores.sort((a: any, b: any) => b.clicks - a.clicks);
+              localStorage.setItem('leaderboard', JSON.stringify(scores.slice(0, 100)));
+              localStorage.setItem('finalClickCount', clickCount.toString());
+            }
+            return 60; // Reset to 60
+          }
+          return prev - 1;
+        });
+      }, 1000);
+    } else {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+      }
+    }
+
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+    };
+  }, [isGameActive, timeLeft]);
+
+  const formatTime = (seconds: number) => {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${mins}:${secs.toString().padStart(2, "0")}`;
+  };
+
+  const handleBoxClick = (e: React.MouseEvent<HTMLDivElement>) => {
+    e.stopPropagation();
+    
+    if (!isGameActive && timeLeft === 60) {
+      // Start the game - reset click count for new game
+      setIsGameActive(true);
+      setHasStarted(true);
+      setClickCount(1);
+      setFinalClickCount(0);
+      setBoxSize((prev) => Math.min(prev + SIZE_INCREMENT, MAX_BOX_SIZE));
+    } else if (isGameActive) {
+      // Game is active, count the click
+      setClickCount((prev) => prev + 1);
+      setBoxSize((prev) => Math.min(prev + SIZE_INCREMENT, MAX_BOX_SIZE));
+    }
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex min-h-screen flex-col bg-white">
+      {/* Header */}
+      <header className="flex items-center justify-between bg-gray-800 px-4 py-3">
+        <div className="flex items-center gap-2">
+          <div className="h-8 w-8 rounded-full bg-black"></div>
+          <span className="text-sm font-medium text-white">@username</span>
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+        <button className="p-2 text-white">
+          <svg
+            className="h-6 w-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
+          </svg>
+        </button>
+      </header>
+
+      {/* Main Content */}
+      <main className="relative flex flex-1 flex-col items-center justify-center px-4">
+        {/* Max Click Counter - Top Left */}
+        {(hasStarted || finalClickCount > 0) && (
+          <div className="absolute left-4 top-4">
+            <span className="text-sm font-medium text-gray-800">
+              Max click: {isGameActive ? clickCount : finalClickCount}x
+            </span>
+          </div>
+        )}
+
+        {!hasStarted && (
+          <p className="mb-4 text-center text-lg font-semibold text-gray-800">
+            Tap to blue box to start!
+          </p>
+        )}
+        
+        {/* Blue Box */}
+        <div className="mb-8 flex items-center justify-center">
+          <div
+            ref={boxRef}
+            onClick={handleBoxClick}
+            className="rounded-lg bg-blue-500 transition-all duration-200"
+            style={{
+              width: `${boxSize}px`,
+              height: `${boxSize}px`,
+              cursor: "pointer",
+            }}
+          />
+        </div>
+
+        {/* Timer */}
+        <div className="text-2xl font-semibold text-gray-800">
+          {formatTime(timeLeft)}
         </div>
       </main>
+
+      {/* Bottom Navigation */}
+      <nav className="bg-gray-800">
+        <div className="flex">
+          <Link
+            href="/"
+            className="flex flex-1 items-center justify-center py-4"
+          >
+            <div className="h-6 w-6 rounded bg-white"></div>
+          </Link>
+          <Link
+            href="/leaderboard"
+            className="flex flex-1 items-center justify-center py-4"
+          >
+            <div className="flex gap-1">
+              <div className="h-4 w-4 rounded-full bg-white"></div>
+              <div className="h-4 w-4 rounded-full bg-white"></div>
+              <div className="h-4 w-4 rounded-full bg-white"></div>
+            </div>
+          </Link>
+        </div>
+      </nav>
     </div>
   );
 }
