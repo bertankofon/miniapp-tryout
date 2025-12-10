@@ -5,6 +5,7 @@ import Link from "next/link";
 
 interface LeaderboardEntry {
   username: string;
+  displayName?: string;
   clicks: number;
   timestamp: number;
 }
@@ -20,29 +21,28 @@ export default function Leaderboard() {
   const username = "@username";
 
   useEffect(() => {
-    // Load leaderboard from localStorage
-    const scores = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-    // Sort by clicks descending
-    const sorted = scores.sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.clicks - a.clicks);
-    setLeaderboard(sorted);
+    const load = async () => {
+      try {
+        const res = await fetch("/api/scores", { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to fetch leaderboard");
+        const data = await res.json();
+        const scores: LeaderboardEntry[] = data.leaderboard || [];
+        setLeaderboard(scores);
 
-    // Find user's rank and best score
-    const userScores = sorted.filter((entry: LeaderboardEntry) => entry.username === username);
-    if (userScores.length > 0) {
-      const bestScore = userScores[0];
-      const rank = sorted.findIndex((entry: LeaderboardEntry) => entry === bestScore) + 1;
-      setUserRank(rank);
-      setUserClicks(bestScore.clicks);
-    } else {
-      // If no score, check final click count from home page
-      const finalCount = parseInt(localStorage.getItem('finalClickCount') || '0');
-      if (finalCount > 0) {
-        setUserClicks(finalCount);
-        // Find rank for this score
-        const rank = sorted.findIndex((entry: LeaderboardEntry) => entry.clicks < finalCount) + 1;
-        setUserRank(rank || sorted.length + 1);
+        // Compute rank for current user if present
+        const meIndex = scores.findIndex((entry) => entry.username === username);
+        if (meIndex >= 0) {
+          setUserRank(meIndex + 1);
+          setUserClicks(scores[meIndex].clicks);
+        } else {
+          setUserRank(0);
+          setUserClicks(0);
+        }
+      } catch (err) {
+        console.error(err);
       }
-    }
+    };
+    load();
   }, []);
 
   const handleShare = () => {
@@ -167,7 +167,7 @@ export default function Leaderboard() {
                     <div className="h-8 w-8 rounded-full bg-gray-300"></div>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-800">
-                        visible name
+                        {entry.displayName || "visible name"}
                       </span>
                       <span className="text-xs text-gray-500">{entry.username}</span>
                     </div>

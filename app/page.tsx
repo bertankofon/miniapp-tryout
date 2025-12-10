@@ -34,20 +34,7 @@ export default function Home() {
             setIsGameActive(false);
             // Save final click count when timer finishes
             setFinalClickCount(clickCount);
-            // Save score to localStorage
-            if (clickCount > 0) {
-              const scores = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-              const username = '@username';
-              scores.push({
-                username,
-                clicks: clickCount,
-                timestamp: Date.now()
-              });
-              // Sort by clicks descending and keep top 100
-              scores.sort((a: any, b: any) => b.clicks - a.clicks);
-              localStorage.setItem('leaderboard', JSON.stringify(scores.slice(0, 100)));
-              localStorage.setItem('finalClickCount', clickCount.toString());
-            }
+            persistScore(clickCount);
             return TIME_LIMIT; // Reset to 5
           }
           return prev - 1;
@@ -100,6 +87,22 @@ export default function Home() {
       // Game is active, count the click
       setClickCount((prev) => prev + 1);
       setBoxSize((prev) => Math.min(prev + SIZE_INCREMENT, MAX_BOX_SIZE));
+    }
+  };
+
+  const persistScore = async (clicks: number) => {
+    try {
+      await fetch("/api/scores", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: baseUsername,
+          displayName,
+          clicks,
+        }),
+      });
+    } catch (error) {
+      console.error("Failed to persist score", error);
     }
   };
 
