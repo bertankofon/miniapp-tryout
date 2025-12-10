@@ -2,7 +2,8 @@
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
-import { sdk } from '@farcaster/miniapp-sdk';
+import { sdk } from "@farcaster/miniapp-sdk";
+import { useMiniKit } from "@coinbase/onchainkit/minikit";
 
 
 
@@ -10,6 +11,7 @@ import { sdk } from '@farcaster/miniapp-sdk';
 const TIME_LIMIT = 5;
 
 export default function Home() {
+  const { context } = useMiniKit();
   const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [isGameActive, setIsGameActive] = useState(false);
   const [clickCount, setClickCount] = useState(0);
@@ -65,6 +67,11 @@ export default function Home() {
     };
   }, [isGameActive, timeLeft]);
 
+  const isBaseApp = context?.client?.clientFid === 309857;
+  const baseUsername =
+    context?.user?.username ? `@${context.user.username}` : "@username";
+  const displayName = context?.user?.displayName ?? "visible name";
+
   const handleAddMiniApp = async () => {
     try {
       await sdk.actions.addMiniApp();
@@ -102,7 +109,12 @@ export default function Home() {
       <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-black"></div>
-          <span className="text-base font-semibold">@username</span>
+          <div className="flex flex-col leading-tight">
+            <span className="text-base font-semibold">{baseUsername}</span>
+            {isBaseApp && (
+              <span className="text-xs font-semibold text-blue-600">Base App</span>
+            )}
+          </div>
         </div>
         <div className="flex items-center gap-3">
           <button
