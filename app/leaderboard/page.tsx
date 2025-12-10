@@ -21,28 +21,49 @@ export default function Leaderboard() {
   const username = "@username";
 
   useEffect(() => {
-    const load = async () => {
+    const loadScores = async () => {
       try {
-        const res = await fetch("/api/scores", { cache: "no-store" });
-        if (!res.ok) throw new Error("Failed to fetch leaderboard");
-        const data = await res.json();
-        const scores: LeaderboardEntry[] = data.leaderboard || [];
-        setLeaderboard(scores);
+        const res = await fetch("/api/scores");
+        const fallback = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+        const source =
+          res.ok && Array.isArray((await res.clone().json()).scores)
+            ? (await res.json()).scores
+            : fallback;
+        const sorted = source
+          .slice()
+          .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.clicks - a.clicks);
+        setLeaderboard(sorted);
 
-        // Compute rank for current user if present
-        const meIndex = scores.findIndex((entry) => entry.username === username);
-        if (meIndex >= 0) {
-          setUserRank(meIndex + 1);
-          setUserClicks(scores[meIndex].clicks);
+        // rank + best score
+        const userScores = sorted.filter(
+          (entry: LeaderboardEntry) => entry.username === username
+        );
+        if (userScores.length > 0) {
+          const bestScore = userScores[0];
+          const rank =
+            sorted.findIndex((entry: LeaderboardEntry) => entry === bestScore) + 1;
+          setUserRank(rank);
+          setUserClicks(bestScore.clicks);
         } else {
-          setUserRank(0);
-          setUserClicks(0);
+          const finalCount = parseInt(localStorage.getItem("finalClickCount") || "0");
+          if (finalCount > 0) {
+            setUserClicks(finalCount);
+            const rank =
+              sorted.findIndex((entry: LeaderboardEntry) => entry.clicks < finalCount) +
+              1;
+            setUserRank(rank || sorted.length + 1);
+          }
         }
-      } catch (err) {
-        console.error(err);
+      } catch (_error) {
+        const fallback = JSON.parse(localStorage.getItem("leaderboard") || "[]");
+        const sorted = fallback
+          .slice()
+          .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.clicks - a.clicks);
+        setLeaderboard(sorted);
       }
     };
-    load();
+
+    loadScores();
   }, []);
 
   const handleShare = () => {

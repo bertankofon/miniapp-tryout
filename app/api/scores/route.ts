@@ -1,105 +1,104 @@
 "use server";
 
-import { kv } from "@vercel/kv";
-import { NextResponse } from "next/server";
+import { get, getAll } from "@vercel/edge-config";
 
-type ScorePayload = {
+type ScoreEntry = {
   username: string;
   displayName: string;
   clicks: number;
+  timestamp: number;
 };
 
-const ZSET_KEY = "scores:zset";
-const HASH_PREFIX = "scores:hash:";
-const MAX_ENTRIES = 100;
+const EDGE_CONFIG_API_URL = "https://api.vercel.com/v1/edge-config";
+const EDGE_CONFIG_ID = process.env.EDGE_CONFIG_ID;
+const EDGE_CONFIG_TOKEN = process.env.EDGE_CONFIG_TOKEN;
 
-function envReady() {
-  return (
-    process.env.KV_REST_API_URL &&
-    process.env.KV_REST_API_TOKEN &&
-    process.env.KV_URL
-  );
+async function readScores(): Promise<ScoreEntry[]> {
+  // Try to read the "scores" key; fallback to empty array
+  const existing = (await get<ScoreEntry[]>("scores")) ?? [];
+  return Array.isArray(existing) ? existing : [];
 }
 
-export async function POST(request: Request) {
-  if (!envReady()) {
-    return NextResponse.json(
-      { error: "KV is not configured (set KV_REST_API_URL, KV_REST_API_TOKEN, KV_URL)" },
-      { status: 500 }
-    );
+async function writeScores(scores: ScoreEntry[]) {
+  if (!EDGE_CONFIG_ID || !EDGE_CONFIG_TOKEN) {
+    throw new Error("EDGE_CONFIG_ID or EDGE_CONFIG_TOKEN not set");
   }
-
-  let body: ScorePayload;
-  try {
-    body = await request.json();
-  } catch {
-    return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
-  }
-
-  const username = (body.username || "").trim();
-  const displayName = (body.displayName || "").trim();
-  const clicks = Number(body.clicks);
-
-  if (!username || !displayName || !Number.isFinite(clicks) || clicks < 0) {
-    return NextResponse.json({ error: "Invalid payload" }, { status: 400 });
-  }
-
-  const id = `${Date.now()}-${Math.random().toString(16).slice(2)}`;
-  const timestamp = Date.now();
-
-  // Store the score and keep zset sorted by clicks
-  await kv.hset(HASH_PREFIX + id, {
-    id,
-    username,
-    displayName,
-    clicks,
-    timestamp,
+  const res = await fetch(`${EDGE_CONFIG_API_URL}/${EDGE_CONFIG_ID}/items`, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${EDGE_CONFIG_TOKEN}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      items: [
+        {
+          operation: "upsert",
+          key: "scores",
+          value: scores,
+        },
+      ],
+    }),
   });
-  await kv.zadd(ZSET_KEY, { score: clicks, member: id });
 
-  // Trim leaderboard to top MAX_ENTRIES
-  await kv.zremrangebyrank(ZSET_KEY, 0, -(MAX_ENTRIES + 1));
-
-  return NextResponse.json({ ok: true, id });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Edge Config write failed: ${res.status} ${text}`);
+  }
 }
 
 export async function GET() {
-  if (!envReady()) {
-    return NextResponse.json(
-      { error: "KV is not configured (set KV_REST_API_URL, KV_REST_API_TOKEN, KV_URL)" },
-      { status: 500 }
+  try {
+    const scores = await readScores();
+    return new Response(JSON.stringify({ scores }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ error: error?.message ?? "Failed to read scores" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
     );
   }
+}
 
-  // Get top scores (highest first)
-  const ids = await kv.zrange<string[]>(ZSET_KEY, 0, MAX_ENTRIES - 1, {
-    rev: true,
-  });
+export async function POST(request: Request) {
+  try {
+    const body = await request.json();
+    const username = typeof body?.username === "string" ? body.username : "";
+    const displayName =
+      typeof body?.displayName === "string" ? body.displayName : "";
+    const clicks = Number(body?.clicks ?? 0);
 
-  const rows = await Promise.all(
-    ids.map(async (id) => {
-      const data = (await kv.hgetall<{
-        id: string;
-        username: string;
-        displayName: string;
-        clicks: number;
-        timestamp: number;
-      }>(HASH_PREFIX + id)) || {};
-      return data;
-    })
-  );
+    if (!username || clicks <= 0) {
+      return new Response(
+        JSON.stringify({ error: "username and clicks are required" }),
+        { status: 400, headers: { "Content-Type": "application/json" } }
+      );
+    }
 
-  // Filter out empty entries in case of missing hashes
-  const leaderboard = rows.filter(
-    (r): r is {
-      id: string;
-      username: string;
-      displayName: string;
-      clicks: number;
-      timestamp: number;
-    } => Boolean(r && (r as any).username)
-  );
+    const scores = await readScores();
+    scores.push({
+      username,
+      displayName: displayName || username,
+      clicks,
+      timestamp: Date.now(),
+    });
 
-  return NextResponse.json({ leaderboard });
+    // sort desc, keep top 100
+    scores.sort((a, b) => b.clicks - a.clicks);
+    const trimmed = scores.slice(0, 100);
+
+    await writeScores(trimmed);
+
+    return new Response(JSON.stringify({ ok: true }), {
+      status: 200,
+      headers: { "Content-Type": "application/json" },
+    });
+  } catch (error: any) {
+    return new Response(
+      JSON.stringify({ error: error?.message ?? "Failed to save score" }),
+      { status: 500, headers: { "Content-Type": "application/json" } }
+    );
+  }
 }
 
