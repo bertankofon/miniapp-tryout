@@ -1,17 +1,18 @@
 "use client";
 
 import { OnchainKitProvider } from "@coinbase/onchainkit";
-import { ReactNode } from "react";
+import type { ReactNode } from "react";
+import { base } from "viem/chains";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <OnchainKitProvider
-      config={{
-        // Add minikit config here if needed later, e.g. minikit: { enabled: true }
+      chain={base}
+      miniKit={{
+        enabled: true,
       }}
     >
       {children}
     </OnchainKitProvider>
   );
 }
-

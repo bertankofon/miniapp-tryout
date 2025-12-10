@@ -18,8 +18,10 @@
         "name": "next"
       }
     ],
+    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@/minikit/*": ["./node_modules/@coinbase/onchainkit/src/minikit/*"]
     }
   },
   "include": [
