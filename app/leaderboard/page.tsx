@@ -167,9 +167,8 @@ export default function Leaderboard() {
                     <div className="h-8 w-8 rounded-full bg-gray-300"></div>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-800">
-                        visible name
+                        {entry.username}
                       </span>
-                      <span className="text-xs text-gray-500">{entry.username}</span>
                     </div>
                   </div>
                   <div className="w-20 text-right text-sm font-medium text-gray-800">
@@ -197,9 +196,8 @@ export default function Leaderboard() {
                 <div className="h-16 w-16 rounded-full bg-gray-300"></div>
                 <div className="flex flex-col">
                   <span className="text-lg font-semibold text-gray-800">
-                    visible name
+                    {username}
                   </span>
-                  <span className="text-sm text-gray-600">{username}</span>
                 </div>
               </div>
               <div className="mb-6 flex items-center gap-3">
