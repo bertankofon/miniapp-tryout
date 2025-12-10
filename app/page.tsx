@@ -4,7 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { sdk } from "@farcaster/miniapp-sdk";
 import { useMiniKit } from "@coinbase/onchainkit/minikit";
-import { base } from "viem/chains";
+import { supabase } from "./lib/supabaseClient";
+
+
+
 
 const TIME_LIMIT = 5;
 
@@ -32,22 +35,9 @@ export default function Home() {
             setIsGameActive(false);
             // Save final click count when timer finishes
             setFinalClickCount(clickCount);
+            // Persist to Supabase
             if (clickCount > 0) {
-              saveScore(clickCount);
-            }
-            // Save score to localStorage
-            if (clickCount > 0) {
-              const scores = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-              const username = baseUsername;
-              scores.push({
-                username,
-                clicks: clickCount,
-                timestamp: Date.now()
-              });
-              // Sort by clicks descending and keep top 100
-              scores.sort((a: any, b: any) => b.clicks - a.clicks);
-              localStorage.setItem('leaderboard', JSON.stringify(scores.slice(0, 100)));
-              localStorage.setItem('finalClickCount', clickCount.toString());
+              persistScore(clickCount);
             }
             return TIME_LIMIT; // Reset to 5
           }
@@ -72,20 +62,18 @@ export default function Home() {
   const baseUsername =
     context?.user?.username ? `@${context.user.username}` : "@username";
   const displayName = context?.user?.displayName ?? "visible name";
+  const fid = context?.user?.fid ?? null;
 
-  const saveScore = async (clicksToSave: number) => {
+  const persistScore = async (clicks: number) => {
     try {
-      await fetch("/api/scores", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: baseUsername,
-          displayName,
-          clicks: clicksToSave,
-        }),
+      await supabase.from("scores").insert({
+        clicks,
+        username: baseUsername,
+        display_name: displayName,
+        fid,
       });
     } catch (error) {
-      console.error("Failed to save score to Edge Config", error);
+      console.error("Failed to persist score", error);
     }
   };
 

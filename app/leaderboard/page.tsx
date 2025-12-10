@@ -1,13 +1,17 @@
 "use client";
 
+export const dynamic = "force-dynamic";
+
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
+import { supabase } from "../lib/supabaseClient";
 
 interface LeaderboardEntry {
   username: string;
-  displayName?: string;
+  display_name?: string | null;
+  fid?: number | null;
   clicks: number;
-  timestamp: number;
+  created_at?: string;
 }
 
 export default function Leaderboard() {
@@ -21,49 +25,27 @@ export default function Leaderboard() {
   const username = "@username";
 
   useEffect(() => {
-    const loadScores = async () => {
-      try {
-        const res = await fetch("/api/scores");
-        const fallback = JSON.parse(localStorage.getItem("leaderboard") || "[]");
-        const source =
-          res.ok && Array.isArray((await res.clone().json()).scores)
-            ? (await res.json()).scores
-            : fallback;
-        const sorted = source
-          .slice()
-          .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.clicks - a.clicks);
-        setLeaderboard(sorted);
+    const fetchScores = async () => {
+      const { data, error } = await supabase
+        .from("scores")
+        .select("username, display_name, fid, clicks, created_at")
+        .order("clicks", { ascending: false })
+        .limit(50);
 
-        // rank + best score
-        const userScores = sorted.filter(
-          (entry: LeaderboardEntry) => entry.username === username
-        );
-        if (userScores.length > 0) {
-          const bestScore = userScores[0];
-          const rank =
-            sorted.findIndex((entry: LeaderboardEntry) => entry === bestScore) + 1;
-          setUserRank(rank);
-          setUserClicks(bestScore.clicks);
-        } else {
-          const finalCount = parseInt(localStorage.getItem("finalClickCount") || "0");
-          if (finalCount > 0) {
-            setUserClicks(finalCount);
-            const rank =
-              sorted.findIndex((entry: LeaderboardEntry) => entry.clicks < finalCount) +
-              1;
-            setUserRank(rank || sorted.length + 1);
-          }
-        }
-      } catch (_error) {
-        const fallback = JSON.parse(localStorage.getItem("leaderboard") || "[]");
-        const sorted = fallback
-          .slice()
-          .sort((a: LeaderboardEntry, b: LeaderboardEntry) => b.clicks - a.clicks);
-        setLeaderboard(sorted);
+      if (error) {
+        console.error("Failed to fetch scores", error);
+        return;
+      }
+      setLeaderboard(data || []);
+
+      if (data && data.length > 0) {
+        const best = data[0];
+        setUserClicks(best.clicks);
+        setUserRank(1);
       }
     };
 
-    loadScores();
+    fetchScores();
   }, []);
 
   const handleShare = () => {
@@ -178,7 +160,7 @@ export default function Leaderboard() {
             ) : (
               leaderboard.slice(0, 20).map((entry, index) => (
                 <div
-                  key={`${entry.timestamp}-${index}`}
+                  key={`${entry.username}-${index}`}
                   className="flex items-center border-b border-gray-200 pb-2"
                 >
                   <div className="w-16 text-sm font-medium text-gray-800">
@@ -188,9 +170,11 @@ export default function Leaderboard() {
                     <div className="h-8 w-8 rounded-full bg-gray-300"></div>
                     <div className="flex flex-col">
                       <span className="text-sm font-medium text-gray-800">
-                        {entry.displayName || "visible name"}
+                        {entry.display_name || "visible name"}
                       </span>
-                      <span className="text-xs text-gray-500">{entry.username}</span>
+                      <span className="text-xs text-gray-500">
+                        {entry.username || "@username"}
+                      </span>
                     </div>
                   </div>
                   <div className="w-20 text-right text-sm font-medium text-gray-800">
