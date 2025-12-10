@@ -5,8 +5,10 @@ import Link from "next/link";
 import { sdk } from '@farcaster/miniapp-sdk';
 
 
+const TIME_LIMIT = 5;
+
 export default function Home() {
-  const [timeLeft, setTimeLeft] = useState(60);
+  const [timeLeft, setTimeLeft] = useState(TIME_LIMIT);
   const [isGameActive, setIsGameActive] = useState(false);
   const [clickCount, setClickCount] = useState(0);
   const [finalClickCount, setFinalClickCount] = useState(0);
@@ -41,7 +43,7 @@ export default function Home() {
               localStorage.setItem('leaderboard', JSON.stringify(scores.slice(0, 100)));
               localStorage.setItem('finalClickCount', clickCount.toString());
             }
-            return 60; // Reset to 60
+            return TIME_LIMIT; // Reset to 5
           }
           return prev - 1;
         });
@@ -69,7 +71,7 @@ export default function Home() {
   const handleBoxClick = (e: React.MouseEvent<HTMLDivElement>) => {
     e.stopPropagation();
     
-    if (!isGameActive && timeLeft === 60) {
+    if (!isGameActive && timeLeft === TIME_LIMIT) {
       // Start the game - reset click count for new game
       setIsGameActive(true);
       setHasStarted(true);
