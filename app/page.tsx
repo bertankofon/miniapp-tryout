@@ -5,6 +5,8 @@ import Link from "next/link";
 import { sdk } from '@farcaster/miniapp-sdk';
 
 
+
+
 const TIME_LIMIT = 5;
 
 export default function Home() {
@@ -22,6 +24,7 @@ export default function Home() {
 
   useEffect(() => {
     sdk.actions.ready();
+
     if (isGameActive && timeLeft > 0) {
       timerRef.current = setInterval(() => {
         setTimeLeft((prev) => {
@@ -62,6 +65,14 @@ export default function Home() {
     };
   }, [isGameActive, timeLeft]);
 
+  const handleAddMiniApp = async () => {
+    try {
+      await sdk.actions.addMiniApp();
+    } catch (error) {
+      console.error("addMiniApp failed", error);
+    }
+  };
+
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);
     const secs = seconds % 60;
@@ -93,21 +104,29 @@ export default function Home() {
           <div className="h-8 w-8 rounded-full bg-black"></div>
           <span className="text-base font-semibold">@username</span>
         </div>
-        <button className="p-2 text-slate-900">
-          <svg
-            className="h-6 w-6"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleAddMiniApp}
+            className="rounded-full bg-blue-600 px-3 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
           >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M4 6h16M4 12h16M4 18h16"
-            />
-          </svg>
-        </button>
+            Add app
+          </button>
+          <button className="p-2 text-slate-900">
+            <svg
+              className="h-6 w-6"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
       </header>
 
       {/* Main Content */}
