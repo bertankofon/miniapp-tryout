@@ -5,8 +5,8 @@ function withValidProperties(properties: Record<string, undefined | string | str
     }
     
     export async function GET() {
-    const URL = process.env.NEXT_PUBLIC_URL as string;
-    return Response.json({
+    
+    const manifest = {
         "accountAssociation": {  // these will be added in step 5
           "header": "",
           "payload": "",
@@ -39,5 +39,7 @@ function withValidProperties(properties: Record<string, undefined | string | str
           "ogImageUrl": "https://ex.co/og.png",
           "noindex": true
         }
-      }); // see the next step for the manifest_json_object
+    };
+
+    return Response.json(manifest); // see the next step for the manifest_json_object
     }
