@@ -20,7 +20,7 @@ export async function generateMetadata(): Promise<Metadata> {
       other: {
       'fc:miniapp': JSON.stringify({
           version: 'next',
-          imageUrl: 'https://your-app.com/embed-image',
+          imageUrl: 'https://base-miniapp-tryout.vercel.app/logo.png', // put the logo image url here
           button: {
               title: `Launch Base Blue Square`,
               action: {

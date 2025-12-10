@@ -86,14 +86,14 @@ export default function Home() {
   };
 
   return (
-    <div className="flex min-h-screen flex-col bg-white">
+    <div className="flex min-h-screen flex-col bg-white text-slate-900">
       {/* Header */}
-      <header className="flex items-center justify-between bg-gray-800 px-4 py-3">
+      <header className="flex items-center justify-between border-b border-gray-200 bg-white px-4 py-3">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-full bg-black"></div>
-          <span className="text-sm font-medium text-white">@username</span>
+          <span className="text-base font-semibold">@username</span>
         </div>
-        <button className="p-2 text-white">
+        <button className="p-2 text-slate-900">
           <svg
             className="h-6 w-6"
             fill="none"
@@ -115,24 +115,37 @@ export default function Home() {
         {/* Max Click Counter - Top Left */}
         {(hasStarted || finalClickCount > 0) && (
           <div className="absolute left-4 top-4">
-            <span className="text-sm font-medium text-gray-800">
-              Max click: {isGameActive ? clickCount : finalClickCount}x
+            <span className="text-base font-semibold text-slate-900">
+              Max click:{" "}
+              <span className="text-lg font-extrabold">
+                {isGameActive ? clickCount : finalClickCount}x
+              </span>
             </span>
           </div>
         )}
 
+        {/* Static max click display to mirror wireframe when not started */}
+        {!hasStarted && finalClickCount === 0 && (
+          <div className="absolute left-4 top-4">
+            <span className="text-base font-semibold text-slate-900">
+              Max click: <span className="text-lg font-extrabold">10x</span>
+            </span>
+          </div>
+        )}
+
+        {/* Max Click Counter - Top Left */}
         {!hasStarted && (
-          <p className="mb-4 text-center text-lg font-semibold text-gray-800">
+          <p className="mb-8 mt-10 text-center text-xl font-semibold text-slate-900">
             Tap to blue box to start!
           </p>
         )}
         
         {/* Blue Box */}
-        <div className="mb-8 flex items-center justify-center">
+        <div className="mb-12 flex items-center justify-center">
           <div
             ref={boxRef}
             onClick={handleBoxClick}
-            className="rounded-lg bg-blue-500 transition-all duration-200"
+            className="rounded-lg bg-blue-600 transition-all duration-200 shadow-md"
             style={{
               width: `${boxSize}px`,
               height: `${boxSize}px`,
@@ -142,28 +155,28 @@ export default function Home() {
         </div>
 
         {/* Timer */}
-        <div className="text-2xl font-semibold text-gray-800">
+        <div className="mt-4 text-3xl font-bold text-slate-900">
           {formatTime(timeLeft)}
         </div>
       </main>
 
       {/* Bottom Navigation */}
-      <nav className="bg-gray-800">
+      <nav className="border-t border-gray-200 bg-gray-200">
         <div className="flex">
           <Link
             href="/"
             className="flex flex-1 items-center justify-center py-4"
           >
-            <div className="h-6 w-6 rounded bg-white"></div>
+            <div className="h-6 w-6 rounded bg-white shadow-sm"></div>
           </Link>
           <Link
             href="/leaderboard"
             className="flex flex-1 items-center justify-center py-4"
           >
             <div className="flex gap-1">
-              <div className="h-4 w-4 rounded-full bg-white"></div>
-              <div className="h-4 w-4 rounded-full bg-white"></div>
-              <div className="h-4 w-4 rounded-full bg-white"></div>
+              <div className="h-4 w-4 rounded-full bg-white shadow-sm"></div>
+              <div className="h-4 w-4 rounded-full bg-white shadow-sm"></div>
+              <div className="h-4 w-4 rounded-full bg-white shadow-sm"></div>
             </div>
           </Link>
         </div>

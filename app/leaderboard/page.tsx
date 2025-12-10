@@ -14,6 +14,8 @@ export default function Leaderboard() {
   const [userRank, setUserRank] = useState<number>(0);
   const [userClicks, setUserClicks] = useState<number>(0);
   const [showShareCard, setShowShareCard] = useState(false);
+  const [copyStatus, setCopyStatus] = useState<string>("");
+  const [isCopying, setIsCopying] = useState(false);
   const shareCardRef = useRef<HTMLDivElement>(null);
   const username = "@username";
 
@@ -43,69 +45,59 @@ export default function Leaderboard() {
     }
   }, []);
 
-  const handleShare = async () => {
+  const handleShare = () => {
+    setCopyStatus("");
     setShowShareCard(true);
-    // Wait for DOM to update, then copy
-    setTimeout(async () => {
-      if (shareCardRef.current) {
-        try {
-          // Convert the card to an image
-          const html2canvas = (await import('html2canvas')).default;
-          const canvas = await html2canvas(shareCardRef.current, {
-            backgroundColor: '#ffffff',
-            scale: 2,
-          });
-          
-          canvas.toBlob(async (blob) => {
-            if (blob) {
-              try {
-                // Try modern ClipboardItem API
-                if (typeof ClipboardItem !== 'undefined') {
-                  const item = new ClipboardItem({ 'image/png': blob });
-                  await navigator.clipboard.write([item]);
-                  alert('Share card copied to clipboard!');
-                  setShowShareCard(false);
-                  return;
-                }
-              } catch (e) {
-                // Fallback to data URL
-              }
-              
-              // Fallback: convert to data URL and copy
-              canvas.toBlob((blob) => {
-                if (blob) {
-                  const reader = new FileReader();
-                  reader.onloadend = () => {
-                    const dataUrl = reader.result as string;
-                    // Try to copy image data URL
-                    navigator.clipboard.writeText(dataUrl).then(() => {
-                      alert('Share card image data copied to clipboard!');
-                      setShowShareCard(false);
-                    }).catch(() => {
-                      // Final fallback: copy text
-                      const text = `${username} scored ${userClicks}x! Tap to Base Blue Square`;
-                      navigator.clipboard.writeText(text).then(() => {
-                        alert('Share text copied to clipboard!');
-                        setShowShareCard(false);
-                      });
-                    });
-                  };
-                  reader.readAsDataURL(blob);
-                }
-              });
-            }
-          });
-        } catch (error) {
-          console.error('Error creating share card:', error);
-          // Fallback: just copy text
-          const text = `${username} scored ${userClicks}x! Tap to Base Blue Square`;
-          navigator.clipboard.writeText(text).then(() => {
-            alert('Share text copied to clipboard!');
-            setShowShareCard(false);
-          });
-        }
+  };
+
+  const copyCardImage = async () => {
+    if (!shareCardRef.current) return;
+    setIsCopying(true);
+    setCopyStatus("");
+    try {
+      const html2canvas = (await import("html2canvas")).default;
+      const canvas = await html2canvas(shareCardRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2,
+      });
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve)
+      );
+      if (blob && typeof ClipboardItem !== "undefined") {
+        const item = new ClipboardItem({ "image/png": blob });
+        await navigator.clipboard.write([item]);
+        setCopyStatus("Image copied to clipboard.");
+        return;
       }
-    }, 100);
+      // Fallback: copy data URL
+      if (blob) {
+        const reader = new FileReader();
+        reader.onloadend = async () => {
+          const dataUrl = reader.result as string;
+          await navigator.clipboard.writeText(dataUrl);
+          setCopyStatus("Image data copied to clipboard.");
+        };
+        reader.readAsDataURL(blob);
+        return;
+      }
+      setCopyStatus("Could not create image to copy.");
+    } catch (error) {
+      console.error("Error copying image:", error);
+      setCopyStatus("Failed to copy image.");
+    } finally {
+      setIsCopying(false);
+    }
+  };
+
+  const copyShareText = async () => {
+    const text = `${username} scored ${userClicks}x! Tap to Base Blue Square`;
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopyStatus("Share text copied to clipboard.");
+    } catch (error) {
+      console.error("Error copying text:", error);
+      setCopyStatus("Failed to copy text.");
+    }
   };
 
   return (
@@ -217,6 +209,28 @@ export default function Leaderboard() {
               <div className="w-full rounded bg-gray-800 px-4 py-3 text-center text-sm font-medium text-white">
                 Tap to Base Blue Square
               </div>
+            </div>
+            <div className="flex flex-col gap-2 p-4 pt-0">
+              <div className="flex gap-2">
+                <button
+                  onClick={copyCardImage}
+                  className="flex-1 rounded bg-gray-800 px-4 py-2 text-sm font-medium text-white hover:bg-gray-700 disabled:opacity-60"
+                  disabled={isCopying}
+                >
+                  {isCopying ? "Copying..." : "Copy card as image"}
+                </button>
+                <button
+                  onClick={copyShareText}
+                  className="flex-1 rounded border border-gray-300 px-4 py-2 text-sm font-medium text-gray-800 hover:bg-gray-100"
+                >
+                  Copy text
+                </button>
+              </div>
+              {copyStatus && (
+                <div className="text-center text-xs font-medium text-gray-600">
+                  {copyStatus}
+                </div>
+              )}
             </div>
             <button
               onClick={() => setShowShareCard(false)}
