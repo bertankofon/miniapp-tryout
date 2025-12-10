@@ -22,7 +22,6 @@ function withValidProperties(properties: Record<string, undefined | string | str
           "iconUrl": "https://base-miniapp-tryout.vercel.app/logo.png",
           "splashImageUrl": "https://base-miniapp-tryout.vercel.app/wireframe.png",
           "splashBackgroundColor": "#000000",
-          "webhookUrl": "https://base-miniapp-tryout.vercel.app/api/webhook",
           "subtitle": "Fast, fun, social",
           "description": "A fast, fun way to challenge friends in real time.",
           "screenshotUrls": [
